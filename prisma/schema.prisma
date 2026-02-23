@@ -1,0 +1,229 @@
+// This is your updated Prisma schema file for RideWeave
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =====================================================
+// ENUM TYPES
+// =====================================================
+
+enum RideRequestStatus {
+  CREATED
+  WAITING
+  MATCHED
+  EXPIRED
+  CANCELLED
+}
+
+enum SharedRideStatus {
+  ASSIGNED
+  ONGOING
+  COMPLETED
+  FAILED
+}
+
+enum ParticipantRole {
+  PASSENGER
+  PROVIDER
+}
+
+enum WalletTransactionType {
+  CREDIT
+  DEBIT
+}
+
+enum WalletTransactionReason {
+  RIDE_PAYMENT
+  RIDE_EARNING
+  WALLET_TOPUP
+  REFUND
+  CANCELLATION_PENALTY
+}
+
+enum PaymentStatus {
+  INITIATED
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  WALLET
+  UPI
+  CARD
+  NET_BANKING
+}
+
+// =====================================================
+// MODELS
+// =====================================================
+
+model User {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String    @db.VarChar(100)
+  email          String    @unique @db.VarChar(150)
+  phone          String    @unique @db.VarChar(20)
+  phoneVerified  Boolean   @default(false) @map("phone_verified")
+  serviceActive  Boolean   @default(false) @map("service_active")
+  lastLat        Decimal?  @map("last_lat") @db.Decimal(10, 8)
+  lastLng        Decimal?  @map("last_lng") @db.Decimal(11, 8)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  vehicles           Vehicle[]
+  wallet             Wallet?
+  providedRides      SharedRide[]        @relation("RideProvider")
+  rideRequests       RideRequest[]
+  rideParticipants   RideParticipant[]
+  walletTransactions WalletTransaction[]
+  payments           Payment[]
+
+  @@index([serviceActive], map: "idx_users_service_active")
+  @@map("users")
+}
+
+model PhoneVerification {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phone     String   @db.VarChar(20)
+  otp       String   @db.VarChar(6)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+
+  @@index([phone, createdAt], map: "idx_phone_verification_phone_created")
+  @@map("phone_verifications")
+}
+
+model Vehicle {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  vehicleType   String   @map("vehicle_type") @db.VarChar(50)
+  vehicleName   String   @map("vehicle_name") @db.VarChar(100)
+  vehicleNumber String   @unique @map("vehicle_number") @db.VarChar(20)
+  capacity      Int      @default(2) // NEW: Enforce the 2-person limit
+  isVerified    Boolean  @default(false) @map("is_verified")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("vehicles")
+}
+
+model Wallet {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @unique @map("user_id") @db.Uuid
+  balance   Decimal  @default(0) @db.Decimal(14, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+
+  @@map("wallets")
+}
+
+model SharedRide {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  providerId     String           @map("provider_id") @db.Uuid
+  status         SharedRideStatus @default(ASSIGNED)
+  
+  // ROUTE LOGIC FIELDS
+  totalDistance  Decimal?         @map("total_distance") @db.Decimal(10, 2)
+  totalFare      Decimal?         @map("total_fare") @db.Decimal(14, 2)
+  routePolyline  String?          @db.Text // NEW: Store the main path for "on-the-way" matching
+  
+  startedAt      DateTime?        @map("started_at")
+  completedAt    DateTime?        @map("completed_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  provider           User                @relation("RideProvider", fields: [providerId], references: [id], onDelete: Cascade)
+  rideRequests       RideRequest[]
+  participants       RideParticipant[]
+  walletTransactions WalletTransaction[]
+  payments           Payment[]
+
+  @@map("shared_rides")
+}
+
+model RideRequest {
+  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String            @map("user_id") @db.Uuid
+  pickupLat      Decimal           @map("pickup_lat") @db.Decimal(10, 8)
+  pickupLng      Decimal           @map("pickup_lng") @db.Decimal(11, 8)
+  destinationLat Decimal           @map("destination_lat") @db.Decimal(10, 8)
+  destinationLng Decimal           @map("destination_lng") @db.Decimal(11, 8)
+  
+  // MATCHING RADIUS LOGIC
+  searchRadius   Decimal           @default(5.0) @db.Decimal(5, 2) // NEW: 3.0 for partner, 5.0 for ride
+  
+  status         RideRequestStatus @default(CREATED)
+  preConsent     Boolean           @default(true) @map("pre_consent")
+  sharedRideId   String?           @map("shared_ride_id") @db.Uuid
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sharedRide SharedRide? @relation(fields: [sharedRideId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt], map: "idx_matching_query")
+  @@map("ride_requests")
+}
+
+model RideParticipant {
+  id                 String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sharedRideId       String          @map("shared_ride_id") @db.Uuid
+  userId             String          @map("user_id") @db.Uuid
+  role               ParticipantRole
+  individualDistance Decimal?        @map("individual_distance") @db.Decimal(10, 2)
+  fareShare          Decimal?        @map("fare_share") @db.Decimal(14, 2)
+  earning            Decimal?        @db.Decimal(14, 2)
+  createdAt          DateTime        @default(now()) @map("created_at")
+
+  sharedRide SharedRide @relation(fields: [sharedRideId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sharedRideId, userId])
+  @@index([userId], map: "idx_participants_user")
+  @@map("ride_participants")
+}
+
+model WalletTransaction {
+  id              String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  walletId        String                  @map("wallet_id") @db.Uuid
+  userId          String                  @map("user_id") @db.Uuid
+  sharedRideId    String?                 @map("shared_ride_id") @db.Uuid
+  amount          Decimal                 @db.Decimal(14, 2)
+  transactionType WalletTransactionType   @map("transaction_type")
+  reason          WalletTransactionReason
+  createdAt       DateTime                @default(now()) @map("created_at")
+
+  wallet     Wallet      @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sharedRide SharedRide? @relation(fields: [sharedRideId], references: [id], onDelete: SetNull)
+
+  @@index([userId], map: "idx_wallet_transactions_user")
+  @@map("wallet_transactions")
+}
+
+model Payment {
+  id                   String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId               String        @map("user_id") @db.Uuid
+  sharedRideId         String        @map("shared_ride_id") @db.Uuid
+  amount               Decimal       @db.Decimal(14, 2)
+  paymentMethod        PaymentMethod @map("payment_method")
+  status               PaymentStatus @default(INITIATED)
+  transactionReference String?       @map("transaction_reference") @db.VarChar(255)
+  createdAt            DateTime      @default(now()) @map("created_at")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sharedRide SharedRide @relation(fields: [sharedRideId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_payments_user")
+  @@index([sharedRideId], map: "idx_payments_ride")
+  @@map("payments")
+}
