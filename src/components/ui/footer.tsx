@@ -16,49 +16,27 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-(--brand-2) dark:bg-(--nav-bg) mt-20">
+    <footer className="bg-(--brand-2) dark:bg-(--nav-bg) mt-8">
       {/* Main Footer Content */}
       <div className="max-w-6xl mx-auto px-6 py-16">
         <div className="grid md:grid-cols-4 gap-12 mb-12">
           {/* Brand Section */}
           <div className="flex flex-col">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
-                <Car className="w-6 h-6 text-(--brand-2)" />
-              </div>
-              <span className="text-xl font-bold text-white">RideWeave</span>
+              <img
+                src="/logo.png"
+                alt="RideWeave"
+                className="h-10 w-10 rounded-full"
+              />
+              <span className="text-white font-semibold text-lg">
+                RideWeave
+              </span>
             </div>
             <p className="text-white/80 text-sm mb-6">
               Share your journey, save your costs. The safest way to commute
               together.
             </p>
-            {/* Social Links */}
-            <div className="flex gap-4">
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/20 border border-white/40 flex items-center justify-center text-white hover:bg-white hover:text-(--brand-2) hover:border-white transition-all duration-300"
-              >
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/20 border border-white/40 flex items-center justify-center text-white hover:bg-white hover:text-(--brand-2) hover:border-white transition-all duration-300"
-              >
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/20 border border-white/40 flex items-center justify-center text-white hover:bg-white hover:text-(--brand-2) hover:border-white transition-all duration-300"
-              >
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="w-10 h-10 rounded-full bg-white/20 border border-white/40 flex items-center justify-center text-white hover:bg-white hover:text-(--brand-2) hover:border-white transition-all duration-300"
-              >
-                <Linkedin className="w-5 h-5" />
-              </a>
-            </div>
+            {/* Social icons removed */}
           </div>
 
           {/* Quick Links */}

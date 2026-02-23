@@ -29,11 +29,14 @@ const Navbar: React.FC = () => {
     loading,
     userInitial,
     userName,
+    searchQuery,
+    setSearchQuery,
+    handleSearchSubmit,
     handleProfileClick,
     handleHomeClick,
     handleSignInClick,
     handleSignOutClick,
-    handleCreateRideClick,
+    handleRidesNavClick,
     handleProfileClickNav,
     handleWalletClick,
     handleSettingsClick,
@@ -65,14 +68,23 @@ const Navbar: React.FC = () => {
             {/* Search — hidden on mobile */}
             <div className="hidden md:flex grow max-w-md">
               <div className="grow max-w-md -ml-8 w-full">
-                <div className="relative">
+                <form
+                  className="relative"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    handleSearchSubmit();
+                  }}
+                >
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-5 text-(--nav-muted)" />
                   <input
                     type="text"
+                    name="destination"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
                     placeholder="Search destinations..."
                     className="w-full pl-10 pr-4 py-2.5 bg-(--nav-input-bg) border border-(--nav-input-border) text-(--nav-text) placeholder:text-(--nav-input-placeholder) rounded-full focus:outline-none focus:ring-2 focus:ring-(--nav-ring) focus:border-transparent transition-all"
                   />
-                </div>
+                </form>
               </div>
             </div>
 
@@ -81,7 +93,7 @@ const Navbar: React.FC = () => {
               {/* Home */}
               <button
                 onClick={handleHomeClick}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-full hover:bg-(--nav-hover) transition-colors"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full hover:bg-(--nav-hover) transition-all duration-200 ease-out transform-gpu hover:-translate-y-0.5 hover:shadow-(--nav-shadow) active:translate-y-0 active:shadow-none"
               >
                 <Home className="w-5 h-5 text-(--nav-text)" />
                 <span className="font-medium text-(--nav-text)">Home</span>
@@ -89,8 +101,8 @@ const Navbar: React.FC = () => {
 
               {/* Rides */}
               <button
-                onClick={handleCreateRideClick}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-full hover:bg-(--nav-hover) transition-colors"
+                onClick={handleRidesNavClick}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full hover:bg-(--nav-hover) transition-all duration-200 ease-out transform-gpu hover:-translate-y-0.5 hover:shadow-(--nav-shadow) active:translate-y-0 active:shadow-none"
               >
                 <Car className="w-5 h-5 text-(--nav-text)" />
                 <span className="font-medium text-(--nav-text)">Rides</span>
@@ -336,7 +348,7 @@ const Navbar: React.FC = () => {
 
                   {/* Rides */}
                   <button
-                    onClick={handleCreateRideClick}
+                    onClick={handleRidesNavClick}
                     className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl hover:bg-(--nav-hover) transition-colors text-left"
                   >
                     <div className="w-8 h-8 bg-(--brand-2-soft) rounded-full flex items-center justify-center shrink-0">

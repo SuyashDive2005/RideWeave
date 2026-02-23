@@ -7,6 +7,7 @@ export const useNavbar = () => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileRidesOpen, setMobileRidesOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const ridesRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -74,6 +75,14 @@ export const useNavbar = () => {
     setMobileMenuOpen(false);
   };
 
+  const handleRidesNavClick = () => {
+    if (loading) {
+      return;
+    }
+    navigate(user ? "/rides" : "/login");
+    setMobileMenuOpen(false);
+  };
+
   const handleFindRideClick = () => {
     navigate("/rides/find");
     setMobileMenuOpen(false);
@@ -119,6 +128,15 @@ export const useNavbar = () => {
     setMobileMenuOpen(false);
   };
 
+  const handleSearchSubmit = () => {
+    const query = searchQuery.trim();
+    if (!query) {
+      return;
+    }
+    navigate(`/rides?destination=${encodeURIComponent(query)}`);
+    setMobileMenuOpen(false);
+  };
+
   const userInitial =
     user?.user_metadata?.full_name?.charAt(0) || user?.email?.charAt(0) || "U";
 
@@ -133,6 +151,8 @@ export const useNavbar = () => {
     mobileRidesOpen,
     setMobileMenuOpen,
     setMobileRidesOpen,
+    searchQuery,
+    setSearchQuery,
     // Refs
     ridesRef,
     profileRef,
@@ -149,6 +169,7 @@ export const useNavbar = () => {
     handleSignInClick,
     handleSignOutClick,
     handleCreateRideClick,
+    handleRidesNavClick,
     handleFindRideClick,
     handleRideStatusClick,
     handleRideHistoryClick,
@@ -158,5 +179,6 @@ export const useNavbar = () => {
     handleWalletClick,
     handleSettingsClick,
     handleSupportClick,
+    handleSearchSubmit,
   };
 };

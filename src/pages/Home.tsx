@@ -1,10 +1,26 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, Users, Car, MapPin, TrendingUp } from "lucide-react";
+import {
+  Search,
+  Users,
+  Car,
+  MapPin,
+  TrendingUp,
+  ChevronDown,
+} from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Home() {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
+
+  const handleGetStartedClick = () => {
+    if (loading) {
+      return;
+    }
+    navigate(user ? "/rides" : "/login");
+  };
 
   return (
     <div className="bg-(--background) dark:bg-(--home-dark-bg)">
@@ -15,14 +31,12 @@ export default function Home() {
         transition={{ duration: 0.6 }}
         className="relative min-h-screen sm:h-screen sm:min-h-[600px] flex items-center justify-center overflow-hidden"
         style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1449824913935-59a10b8d2000?ixlib=rb-4.0.3&q=80&w=1920')`,
+          backgroundImage:
+            "linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), url('/road_photo_bg.jpg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-black/40" />
-
         {/* Content */}
         <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
           <motion.h1
@@ -64,6 +78,17 @@ export default function Home() {
               <Car className="w-5 h-5" />
               Offer a Ride
             </button>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.6 }}
+            className="mt-10 flex justify-center"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/50 bg-white/10 backdrop-blur-sm text-white animate-bounce">
+              <ChevronDown className="h-5 w-5" />
+            </div>
           </motion.div>
         </div>
       </motion.section>
@@ -192,7 +217,7 @@ export default function Home() {
                 {/* Safety */}
                 <motion.div
                   whileHover={{ scale: 1.05 }}
-                  className="rounded-xl sm:rounded-2xl bg-(--background) p-4 sm:p-6 border-l-4 border-l-(--brand-2) border border-(--brand-2)/30 hover:border-(--brand-2) transition-colors"
+                  className="rounded-xl sm:rounded-2xl bg-(--nav-surface) p-4 sm:p-6 border border-(--nav-border) hover:border-(--brand-2) transition-colors"
                 >
                   <div className="w-12 h-12 rounded-full bg-(--brand-2) flex items-center justify-center mb-4">
                     <TrendingUp className="w-6 h-6 text-white" />
@@ -209,7 +234,7 @@ export default function Home() {
                 {/* Eco-Friendly */}
                 <motion.div
                   whileHover={{ scale: 1.05 }}
-                  className="rounded-xl sm:rounded-2xl bg-(--background) p-4 sm:p-6 border-l-4 border-l-(--brand-2) border border-(--brand-2)/30 hover:border-(--brand-2) transition-colors"
+                  className="rounded-xl sm:rounded-2xl bg-(--nav-surface) p-4 sm:p-6 border border-(--nav-border) hover:border-(--brand-2) transition-colors"
                 >
                   <div className="w-12 h-12 rounded-full bg-(--brand-2) flex items-center justify-center mb-4">
                     <Car className="w-6 h-6 text-white" />
@@ -225,7 +250,7 @@ export default function Home() {
                 {/* Community */}
                 <motion.div
                   whileHover={{ scale: 1.05 }}
-                  className="rounded-xl sm:rounded-2xl bg-(--background) p-4 sm:p-6 border-l-4 border-l-(--brand-2) border border-(--brand-2)/30 hover:border-(--brand-2) transition-colors"
+                  className="rounded-xl sm:rounded-2xl bg-(--nav-surface) p-4 sm:p-6 border border-(--nav-border) hover:border-(--brand-2) transition-colors"
                 >
                   <div className="w-12 h-12 rounded-full bg-(--brand-2) flex items-center justify-center mb-4">
                     <Users className="w-6 h-6 text-white" />
@@ -259,7 +284,7 @@ export default function Home() {
             Join our community and save on your commute
           </p>
           <button
-            onClick={() => navigate("/rides")}
+            onClick={handleGetStartedClick}
             className="px-6 sm:px-8 py-3 sm:py-4 bg-(--brand-2) text-white font-semibold rounded-full hover:bg-(--brand-1) transition-all shadow-lg hover:shadow-xl inline-flex items-center gap-2 text-sm sm:text-base"
           >
             <Car className="w-5 h-5" />
