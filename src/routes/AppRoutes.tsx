@@ -3,6 +3,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import Home from "@/pages/Home";
 import Login from "@/pages/auth/Login";
 import AuthCallback from "@/pages/auth/AuthCallback";
+import Rides from "@/pages/rides/Rides";
 import Profile from "@/pages/profile/Profile";
 import WalletPage from "@/pages/wallet/Wallet";
 import Settings from "@/pages/settings/Settings";
@@ -22,6 +23,14 @@ export function AppRoutes() {
       />
       <Route element={<Login />} path="/login" />
       <Route element={<AuthCallback />} path="/auth/callback" />
+      <Route
+        element={
+          <PageLayout>
+            <Rides />
+          </PageLayout>
+        }
+        path="/rides"
+      />
       <Route
         element={
           <PageLayout>
