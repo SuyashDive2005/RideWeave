@@ -26,11 +26,18 @@ enum SharedRideStatus {
   ONGOING
   COMPLETED
   FAILED
+  CANCELLED
 }
 
 enum ParticipantRole {
   PASSENGER
   PROVIDER
+}
+
+enum UserType {
+  PASSENGER
+  PROVIDER
+  BOTH
 }
 
 enum WalletTransactionType {
@@ -65,16 +72,20 @@ enum PaymentMethod {
 // =====================================================
 
 model User {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name           String    @db.VarChar(100)
-  email          String    @unique @db.VarChar(150)
-  phone          String    @unique @db.VarChar(20)
-  phoneVerified  Boolean   @default(false) @map("phone_verified")
-  serviceActive  Boolean   @default(false) @map("service_active")
-  lastLat        Decimal?  @map("last_lat") @db.Decimal(10, 8)
-  lastLng        Decimal?  @map("last_lng") @db.Decimal(11, 8)
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String   @db.VarChar(100)
+  email          String   @unique @db.VarChar(150)
+  phone          String   @unique @db.VarChar(20)
+  phoneVerified  Boolean  @default(false) @map("phone_verified")
+  userType       UserType @default(PASSENGER) @map("user_type")
+  serviceActive  Boolean  @default(false) @map("service_active")
+  profilePicture String?  @map("profile_picture") @db.Text
+  rating         Decimal  @default(0) @db.Decimal(3, 2)
+  rideCount      Int      @default(0) @map("ride_count")
+  lastLat        Decimal? @map("last_lat") @db.Decimal(10, 8)
+  lastLng        Decimal? @map("last_lng") @db.Decimal(11, 8)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   vehicles           Vehicle[]
   wallet             Wallet?
@@ -83,8 +94,11 @@ model User {
   rideParticipants   RideParticipant[]
   walletTransactions WalletTransaction[]
   payments           Payment[]
+  reviewsGiven       Review[]            @relation("ReviewGiver")
+  reviewsReceived    Review[]            @relation("ReviewReceiver")
 
   @@index([serviceActive], map: "idx_users_service_active")
+  @@index([userType], map: "idx_users_type")
   @@map("users")
 }
 
@@ -103,15 +117,14 @@ model PhoneVerification {
 model Vehicle {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId        String   @map("user_id") @db.Uuid
-  vehicleType   String   @map("vehicle_type") @db.VarChar(50)
-  vehicleName   String   @map("vehicle_name") @db.VarChar(100)
-  vehicleNumber String   @unique @map("vehicle_number") @db.VarChar(20)
-  capacity      Int      @default(2) // NEW: Enforce the 2-person limit
+  vehicleName   String   @map("vehicle_name") @db.VarChar(100) // Model name (e.g., Honda Civic)
+  vehicleNumber String   @unique @map("vehicle_number") @db.VarChar(20) // Registration/plate number
   isVerified    Boolean  @default(false) @map("is_verified")
   createdAt     DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId], map: "idx_vehicles_user")
   @@map("vehicles")
 }
 
@@ -132,22 +145,23 @@ model SharedRide {
   id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   providerId     String           @map("provider_id") @db.Uuid
   status         SharedRideStatus @default(ASSIGNED)
-  
-  // ROUTE LOGIC FIELDS
   totalDistance  Decimal?         @map("total_distance") @db.Decimal(10, 2)
   totalFare      Decimal?         @map("total_fare") @db.Decimal(14, 2)
-  routePolyline  String?          @db.Text // NEW: Store the main path for "on-the-way" matching
-  
+  routePolyline  String?          @db.Text // Store the main path for "on-the-way" matching
   startedAt      DateTime?        @map("started_at")
   completedAt    DateTime?        @map("completed_at")
   createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
 
   provider           User                @relation("RideProvider", fields: [providerId], references: [id], onDelete: Cascade)
   rideRequests       RideRequest[]
   participants       RideParticipant[]
   walletTransactions WalletTransaction[]
   payments           Payment[]
+  reviews            Review[]
 
+  @@index([providerId, status], map: "idx_shared_rides_provider_status")
+  @@index([status, createdAt], map: "idx_shared_rides_status_created")
   @@map("shared_rides")
 }
 
@@ -158,19 +172,19 @@ model RideRequest {
   pickupLng      Decimal           @map("pickup_lng") @db.Decimal(11, 8)
   destinationLat Decimal           @map("destination_lat") @db.Decimal(10, 8)
   destinationLng Decimal           @map("destination_lng") @db.Decimal(11, 8)
-  
-  // MATCHING RADIUS LOGIC
-  searchRadius   Decimal           @default(5.0) @db.Decimal(5, 2) // NEW: 3.0 for partner, 5.0 for ride
-  
+  searchRadius   Decimal           @default(5.0) @db.Decimal(5, 2) // 3.0 for partner, 5.0 for ride
   status         RideRequestStatus @default(CREATED)
   preConsent     Boolean           @default(true) @map("pre_consent")
   sharedRideId   String?           @map("shared_ride_id") @db.Uuid
   createdAt      DateTime          @default(now()) @map("created_at")
+  expiresAt      DateTime?         @map("expires_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
 
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   sharedRide SharedRide? @relation(fields: [sharedRideId], references: [id], onDelete: SetNull)
 
-  @@index([status, createdAt], map: "idx_matching_query")
+  @@index([status, createdAt], map: "idx_ride_requests_status_created")
+  @@index([userId, status], map: "idx_ride_requests_user_status")
   @@map("ride_requests")
 }
 
@@ -219,11 +233,31 @@ model Payment {
   status               PaymentStatus @default(INITIATED)
   transactionReference String?       @map("transaction_reference") @db.VarChar(255)
   createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
 
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   sharedRide SharedRide @relation(fields: [sharedRideId], references: [id], onDelete: Cascade)
 
   @@index([userId], map: "idx_payments_user")
   @@index([sharedRideId], map: "idx_payments_ride")
+  @@index([status], map: "idx_payments_status")
   @@map("payments")
+}
+
+model Review {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sharedRideId String   @map("shared_ride_id") @db.Uuid
+  giverId      String   @map("giver_id") @db.Uuid
+  receiverId   String   @map("receiver_id") @db.Uuid
+  rating       Int      @db.SmallInt // 1-5 stars
+  comment      String?  @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  sharedRide SharedRide @relation(fields: [sharedRideId], references: [id], onDelete: Cascade)
+  giver      User       @relation("ReviewGiver", fields: [giverId], references: [id], onDelete: Cascade)
+  receiver   User       @relation("ReviewReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([sharedRideId, giverId, receiverId])
+  @@index([receiverId], map: "idx_reviews_receiver")
+  @@map("reviews")
 }
