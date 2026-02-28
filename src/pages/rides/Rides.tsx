@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MapPin,
@@ -19,6 +19,8 @@ import {
   SlidersHorizontal,
   Search,
 } from "lucide-react";
+import { MapCanvas } from "@/components/features/MapCanvas";
+import { useGeolocation } from "@/hooks/use-geolocation";
 
 interface Ride {
   id: string;
@@ -289,6 +291,9 @@ export default function Rides() {
   const [searchSource, setSearchSource] = useState("");
   const [searchDestination, setSearchDestination] = useState("");
 
+  // Geolocation hook
+  const { location: userLocation, loading: locationLoading } = useGeolocation();
+
   const handlePublish = () => {
     if (
       !offerVehicleType ||
@@ -351,9 +356,9 @@ export default function Rides() {
   ];
 
   return (
-    <div className="min-h-screen pt-20 bg-[var(--background)]">
+    <div className="min-h-screen pt-20 bg-[var(--background)] dark:bg-[#171b1f]">
       {/* Top Navigation with Tabs */}
-      <div className="pt-8 pb-4 px-3 sm:px-6 flex items-start justify-start bg-[var(--background)]">
+      <div className="pt-8 pb-4 px-3 sm:px-6 flex items-start justify-start bg-[var(--background)] dark:bg-[#171b1f]">
         <div className="flex items-center gap-1 rounded-2xl p-1 border ml-0 mr-auto bg-[var(--nav-surface)] border-[var(--nav-border)] shadow-[0_12px_30px_oklch(0_0_0_/_0.08)]">
           <div className="flex items-center gap-0 overflow-x-auto no-scrollbar">
             {tabs.map((tab) => (
@@ -580,188 +585,18 @@ export default function Rides() {
             </AnimatePresence>
 
             {/* CENTER: Map - Always visible on desktop */}
-            <div className="hidden lg:flex flex-1 h-[640px] flex-col relative overflow-hidden rounded-2xl border-2 m-4 border-[var(--brand-2)] bg-white dark:bg-slate-900">
-              {/* Map placeholder */}
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-cyan-50 via-slate-50 to-slate-100 dark:from-slate-800 dark:via-slate-700 dark:to-slate-600">
-                {/* Grid lines for map feel */}
-                <svg
-                  className="absolute inset-0 w-full h-full opacity-20"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <defs>
-                    <pattern
-                      id="grid"
-                      width="40"
-                      height="40"
-                      patternUnits="userSpaceOnUse"
-                    >
-                      <path
-                        d="M 40 0 L 0 0 0 40"
-                        fill="none"
-                        stroke="#3b82f6"
-                        strokeWidth="0.5"
-                      />
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#grid)" />
-                </svg>
-
-                {/* Fake road lines */}
-                <svg
-                  className="absolute inset-0 w-full h-full"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M 100 600 Q 300 400 500 300 Q 700 200 900 150"
-                    stroke="white"
-                    className="dark:stroke-slate-400"
-                    strokeWidth="18"
-                    fill="none"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M 100 600 Q 300 400 500 300 Q 700 200 900 150"
-                    stroke="#e2e8f0"
-                    className="dark:stroke-slate-600"
-                    strokeWidth="14"
-                    fill="none"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M 0 350 Q 200 340 400 360 Q 600 380 800 400 Q 900 410 1100 380"
-                    stroke="white"
-                    className="dark:stroke-slate-400"
-                    strokeWidth="14"
-                    fill="none"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M 0 350 Q 200 340 400 360 Q 600 380 800 400 Q 900 410 1100 380"
-                    stroke="#e2e8f0"
-                    className="dark:stroke-slate-600"
-                    strokeWidth="10"
-                    fill="none"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M 200 0 Q 250 200 300 400 Q 350 500 400 700"
-                    stroke="white"
-                    className="dark:stroke-slate-400"
-                    strokeWidth="10"
-                    fill="none"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M 200 0 Q 250 200 300 400 Q 350 500 400 700"
-                    stroke="#e2e8f0"
-                    className="dark:stroke-slate-600"
-                    strokeWidth="7"
-                    fill="none"
-                    strokeLinecap="round"
-                  />
-                </svg>
-
-                {/* Route path (highlighted) */}
-                {selectedRide && (
-                  <svg className="absolute inset-0 w-full h-full">
-                    <path
-                      d="M 180 550 Q 350 380 520 280 Q 680 200 840 160"
-                      stroke="#3b82f6"
-                      strokeWidth="5"
-                      fill="none"
-                      strokeDasharray="12,6"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                )}
-
-                {/* Pin markers */}
-                <div className="absolute left-[17%] top-[72%]">
-                  <div className="relative">
-                    <div className="w-8 h-8 bg-[var(--brand-2)] rounded-full flex items-center justify-center shadow-[var(--brand-2-soft)] ring-4 ring-white">
-                      <div className="w-2 h-2 bg-white rounded-full" />
-                    </div>
-                    <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[10px] font-semibold whitespace-nowrap px-2 py-0.5 rounded-full text-white bg-[var(--brand-2)]">
-                      Hinjewadi
-                    </div>
-                  </div>
-                </div>
-
-                <div className="absolute right-[20%] top-[22%]">
-                  <div className="relative">
-                    <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg shadow-emerald-300 ring-4 ring-white">
-                      <div className="w-2 h-2 bg-white rounded-full" />
-                    </div>
-                    <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[10px] font-semibold whitespace-nowrap px-2 py-0.5 rounded-full text-white bg-emerald-600">
-                      Pune Station
-                    </div>
-                  </div>
-                </div>
-
-                {/* Floating car icons for active rides */}
-                {[
-                  { left: "30%", top: "58%", rot: "-30deg" },
-                  { left: "50%", top: "42%", rot: "-40deg" },
-                  { left: "65%", top: "35%", rot: "-35deg" },
-                ].map((pos, i) => (
-                  <motion.div
-                    key={i}
-                    className="absolute"
-                    style={{ left: pos.left, top: pos.top }}
-                    animate={{ y: [0, -4, 0] }}
-                    transition={{
-                      repeat: Infinity,
-                      duration: 2.5,
-                      delay: i * 0.6,
-                      ease: "easeInOut",
-                    }}
-                  >
-                    <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-lg ring-2 ring-[var(--brand-2-soft)]">
-                      <Car className="w-4 h-4 text-[var(--brand-2)]" />
-                    </div>
-                  </motion.div>
-                ))}
-
-                {/* Center "Set on Map" badge if no ride selected */}
-                {!selectedRide && (
-                  <div className="bg-white/90 backdrop-blur-sm px-6 py-4 rounded-2xl shadow-xl flex flex-col items-center gap-2 border border-white dark:bg-slate-700/90 dark:border-slate-600">
-                    <Navigation className="w-8 h-8 text-[var(--brand-2)]" />
-                    <p className="font-semibold text-slate-700 text-sm dark:text-slate-100">
-                      Select a ride to view route
-                    </p>
-                    <p className="text-xs text-slate-400 dark:text-slate-300">
-                      or click to set a pickup point
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Map top controls */}
-              <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
-                <div className="pointer-events-auto flex items-center gap-2">
-                  <div className="bg-white/90 backdrop-blur rounded-xl px-4 py-2 shadow-md flex items-center gap-2 text-xs font-medium text-slate-600 border border-white dark:bg-slate-700/90 dark:text-slate-200 dark:border-slate-600">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    Live · {mockRides.length} active rides
-                  </div>
-                </div>
-                {selectedRide && (
-                  <div className="pointer-events-auto bg-[var(--brand-2)] text-white rounded-xl px-4 py-2 shadow-md text-xs font-semibold flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5" />
-                    {selectedRide.duration} · {selectedRide.distance}
-                  </div>
-                )}
-              </div>
-
-              {/* Mobile floating "Browse Rides" button */}
-              <motion.button
-                onClick={() => setShowRidesList(true)}
-                className="absolute bottom-4 right-4 pointer-events-auto lg:hidden bg-[var(--brand-2)] hover:bg-[var(--brand-2)]/90 text-white rounded-full shadow-lg p-3 flex items-center gap-2 font-medium text-sm transition-all duration-200"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Search className="w-4 h-4 text-white" />
-                Browse Rides
-              </motion.button>
+            <div className="hidden lg:flex flex-1 h-[640px] flex-col relative overflow-hidden rounded-2xl border-2 m-4 border-[var(--brand-2)]">
+              <MapCanvas
+                title=""
+                center={[18.5204, 73.8567]} // Pune center
+                zoom={12}
+                userLocation={userLocation}
+                markers={mockRides.map((ride) => ({
+                  lat: 18.5204 + Math.random() * 0.1 - 0.05,
+                  lng: 73.8567 + Math.random() * 0.1 - 0.05,
+                  label: `${ride.driver} - ₹${ride.fare}`,
+                }))}
+              />
             </div>
 
             {/* Mobile: Toggleable Map */}
@@ -775,29 +610,19 @@ export default function Rides() {
                   transition={{ type: "spring", damping: 25, stiffness: 300 }}
                   className="lg:hidden px-4 pb-4"
                 >
-                  <div className="w-full h-64 sm:h-80 rounded-2xl border-2 border-[var(--brand-2)] overflow-hidden relative bg-white dark:bg-slate-900">
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-cyan-50 via-slate-50 to-slate-100 dark:from-slate-800 dark:via-slate-700 dark:to-slate-600">
-                      {selectedRide && (
-                        <svg className="absolute inset-0 w-full h-full">
-                          <path
-                            d="M 180 550 Q 350 380 520 280 Q 680 200 840 160"
-                            stroke="#3b82f6"
-                            strokeWidth="5"
-                            fill="none"
-                            strokeDasharray="12,6"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      )}
-                      {!selectedRide && (
-                        <div className="bg-white/90 backdrop-blur-sm px-6 py-4 rounded-2xl shadow-xl flex flex-col items-center gap-2 border border-white dark:bg-slate-700/90 dark:border-slate-600">
-                          <Navigation className="w-8 h-8 text-[var(--brand-2)]" />
-                          <p className="font-semibold text-slate-700 text-sm dark:text-slate-100">
-                            Select a ride to view route
-                          </p>
-                        </div>
-                      )}
-                    </div>
+                  <div className="w-full h-80 rounded-2xl border-2 border-[var(--brand-2)] overflow-hidden">
+                    <MapCanvas
+                      title=""
+                      heightClassName="h-80"
+                      center={[18.5204, 73.8567]}
+                      zoom={12}
+                      userLocation={userLocation}
+                      markers={mockRides.map((ride) => ({
+                        lat: 18.5204 + Math.random() * 0.1 - 0.05,
+                        lng: 73.8567 + Math.random() * 0.1 - 0.05,
+                        label: `${ride.driver} - ₹${ride.fare}`,
+                      }))}
+                    />
                   </div>
                 </motion.div>
               )}
@@ -1232,18 +1057,11 @@ export default function Rides() {
         {selectedRide && (
           <>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedRide(null)}
-              className="fixed inset-0 z-40 bg-[var(--nav-bg)] opacity-20"
-            />
-            <motion.div
               initial={{ opacity: 0, y: "100%", x: 0 }}
               animate={{ opacity: 1, y: 0, x: 0 }}
               exit={{ opacity: 0, y: "100%", x: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed bottom-0 left-0 right-0 lg:bottom-auto lg:right-6 lg:left-auto lg:top-1/2 lg:-translate-y-1/2 z-50 w-full lg:w-[520px] max-h-[85vh] lg:max-h-[auto] overflow-y-auto shadow-2xl bg-[var(--nav-surface)] rounded-t-3xl lg:rounded-3xl border-t lg:border border-[var(--nav-border)]"
+              className="fixed bottom-0 left-0 right-0 lg:bottom-auto lg:right-6 lg:left-auto lg:top-1/2 lg:-translate-y-1/2 z-[9999] w-full lg:w-[520px] max-h-[85vh] lg:max-h-[auto] overflow-y-auto shadow-2xl bg-[var(--nav-surface)] rounded-t-3xl lg:rounded-3xl border-t lg:border border-[var(--nav-border)]"
             >
               <div className="p-5">
                 {/* Header - Compact */}

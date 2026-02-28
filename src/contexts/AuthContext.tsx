@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { AuthContext } from "./auth.context";
-export { useAuth } from "./auth.context";
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -37,9 +36,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setSession(session);
         setUser(session?.user ?? null);
 
-        // Handle OAuth callback
+        // Handle OAuth callback and request location
         if (event === "SIGNED_IN" && session) {
           console.log("User signed in:", session.user.email);
+          // Request location permission after sign in
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const { latitude, longitude } = position.coords;
+                localStorage.setItem(
+                  "userLocation",
+                  JSON.stringify([latitude, longitude]),
+                );
+              },
+              (error) => {
+                console.warn("Location permission denied:", error.message);
+              },
+              {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
+              },
+            );
+          }
         }
       },
     );

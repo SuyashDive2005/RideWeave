@@ -23,6 +23,7 @@ enum RideRequestStatus {
 
 enum SharedRideStatus {
   ASSIGNED
+  ARRIVING
   ONGOING
   COMPLETED
   FAILED
@@ -96,6 +97,7 @@ model User {
   payments           Payment[]
   reviewsGiven       Review[]            @relation("ReviewGiver")
   reviewsReceived    Review[]            @relation("ReviewReceiver")
+  driverLocations    DriverLocation[]    @relation("DriverLocations")
 
   @@index([serviceActive], map: "idx_users_service_active")
   @@index([userType], map: "idx_users_type")
@@ -150,6 +152,11 @@ model SharedRide {
   routePolyline  String?          @db.Text // Store the main path for "on-the-way" matching
   startedAt      DateTime?        @map("started_at")
   completedAt    DateTime?        @map("completed_at")
+  // Real-time tracking fields
+  driverLatitude  Decimal?        @map("driver_latitude") @db.Decimal(10, 8)
+  driverLongitude Decimal?        @map("driver_longitude") @db.Decimal(11, 8)
+  etaSeconds      Int?            @map("eta_seconds")
+  distanceMeters  Int?            @map("distance_meters")
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
 
@@ -260,4 +267,22 @@ model Review {
   @@unique([sharedRideId, giverId, receiverId])
   @@index([receiverId], map: "idx_reviews_receiver")
   @@map("reviews")
+}
+
+// Real-time driver location tracking
+model DriverLocation {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  driverId  String   @map("driver_id") @db.Uuid
+  latitude  Decimal  @db.Decimal(10, 8)
+  longitude Decimal  @db.Decimal(11, 8)
+  heading   Int?     @db.SmallInt // Direction in degrees (0-360)
+  speed     Int?     @db.SmallInt // Speed in km/h
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  driver User @relation("DriverLocations", fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([driverId], map: "idx_driver_locations_driver")
+  @@index([updatedAt], map: "idx_driver_locations_updated")
+  @@map("driver_locations")
 }

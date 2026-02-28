@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth.context";
 
 export const useNavbar = () => {
   const [ridesDropdownOpen, setRidesDropdownOpen] = useState(false);

@@ -1,0 +1,77 @@
+PRISMA SCHEMA ADDITIONS FOR REAL-TIME RIDE TRACKING
+==================================================
+
+Add these changes to your prisma/schema.prisma file:
+
+1. UPDATE SharedRideStatus enum (add ARRIVING status):
+-----------------------------------------------------------
+enum SharedRideStatus {
+  ASSIGNED
+  ARRIVING     // <- ADD THIS LINE
+  ONGOING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+
+2. UPDATE SharedRide model (add real-time tracking fields):
+------------------------------------------------------------
+Find the SharedRide model and add these fields before createdAt:
+
+  // Real-time tracking fields
+  driverLatitude  Decimal?        @map("driver_latitude") @db.Decimal(10, 8)
+  driverLongitude Decimal?        @map("driver_longitude") @db.Decimal(11, 8)
+  etaSeconds      Int?            @map("eta_seconds")
+  distanceMeters  Int?            @map("distance_meters")
+
+
+3. ADD DriverLocation model (add at END of schema file):
+---------------------------------------------------------
+// Real-time driver location tracking
+model DriverLocation {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  driverId  String   @map("driver_id") @db.Uuid
+  latitude  Decimal  @db.Decimal(10, 8)
+  longitude Decimal  @db.Decimal(11, 8)
+  heading   Int?     @db.SmallInt // Direction in degrees (0-360)
+  speed     Int?     @db.SmallInt // Speed in km/h
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  driver User @relation("DriverLocations", fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([driverId], map: "idx_driver_locations_driver")
+  @@index([updatedAt], map: "idx_driver_locations_updated")
+  @@map("driver_locations")
+}
+
+
+4. UPDATE User model (add DriverLocation relation):
+----------------------------------------------------
+Find the User model and add this line to the relations section:
+
+  driverLocations    DriverLocation[]    @relation("DriverLocations")
+
+
+AFTER MAKING THESE CHANGES, RUN:
+=================================
+npx prisma migrate dev --name add_realtime_tracking
+npx prisma generate
+
+
+This will:
+- Create a new migration in prisma/migrations/
+- Apply changes to your Supabase database
+- Regenerate the Prisma Client with new types
+
+
+ENABLE SUPABASE REALTIME:
+==========================
+After migration succeeds:
+1. Go to Supabase Dashboard → Database → Replication
+2. Enable Realtime for: driver_locations
+3. Enable Realtime for: shared_rides
+
+
+DONE! Your database is ready for real-time ride tracking! 🎉

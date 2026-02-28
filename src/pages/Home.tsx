@@ -9,7 +9,7 @@ import {
   TrendingUp,
   ChevronDown,
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth.context";
 
 export default function Home() {
   const navigate = useNavigate();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth.context";
 import { authService } from "@/services/auth.service";
 import { isValidEmail, getPasswordErrorMessage } from "@/utils/validation";
 import { AuthHero } from "@/app.components/auth/auth-hero";
