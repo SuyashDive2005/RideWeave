@@ -200,7 +200,7 @@ export const MapCanvas = (props: InteractiveMapCanvasProps) => {
           onClick={handleLocateUser}
           disabled={locating}
           title="Locate me"
-          className="absolute top-3 left-14 z-[1000] h-10 w-10 rounded-full bg-[#00bcb4] text-white shadow-xl border border-[#00bcb4] hover:bg-[#00a9a2] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+          className="absolute top-3 left-14 z-20 h-10 w-10 rounded-full bg-[#00bcb4] text-white shadow-xl border border-[#00bcb4] hover:bg-[#00a9a2] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
         >
           {locating ? (
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -210,7 +210,7 @@ export const MapCanvas = (props: InteractiveMapCanvasProps) => {
         </button>
 
         {locationError && (
-          <div className="absolute top-14 left-14 z-[1000] bg-red-500/90 text-white text-xs px-3 py-2 rounded-md shadow-lg max-w-52">
+          <div className="absolute top-14 left-14 z-20 bg-red-500/90 text-white text-xs px-3 py-2 rounded-md shadow-lg max-w-52">
             {locationError}
           </div>
         )}

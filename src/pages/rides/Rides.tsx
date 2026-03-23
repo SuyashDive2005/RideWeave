@@ -356,7 +356,7 @@ export default function Rides() {
   ];
 
   return (
-    <div className="min-h-screen pt-20 bg-[var(--background)] dark:bg-[#171b1f]">
+    <div className="min-h-screen pt-24 bg-[var(--background)] dark:bg-[#171b1f]">
       {/* Top Navigation with Tabs */}
       <div className="pt-8 pb-4 px-3 sm:px-6 flex items-start justify-start bg-[var(--background)] dark:bg-[#171b1f]">
         <div className="flex items-center gap-1 rounded-2xl p-1 border ml-0 mr-auto bg-[var(--nav-surface)] border-[var(--nav-border)] shadow-[0_12px_30px_oklch(0_0_0_/_0.08)]">
