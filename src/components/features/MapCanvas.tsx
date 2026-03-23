@@ -1,16 +1,10 @@
-import {
-  MapContainer,
-  TileLayer,
-  Popup,
-  Marker,
-  useMap,
-  Polyline,
-  CircleMarker,
-} from "react-leaflet";
+import { MapContainer, TileLayer, Popup, Marker, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useCallback, useState } from "react";
 import L from "leaflet";
-import { blueIcon, type MapCanvasProps } from "@/lib/map-config";
+import { LocateFixed, Loader2 } from "lucide-react";
+import { type MapCanvasProps } from "@/lib/map-config";
+import { useGeolocation } from "@/hooks/use-geolocation";
 
 type ClickHandler = (lat: number, lng: number) => void;
 
@@ -27,38 +21,16 @@ interface InteractiveMapCanvasProps extends MapCanvasProps {
   autoZoom?: boolean;
 }
 
-// Create custom markers for pickup and drop points
-const pickupIcon = new L.Icon({
-  iconUrl:
-    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-green.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-const dropIcon = new L.Icon({
-  iconUrl:
-    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-red.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-const driverIcon = new L.Icon({
-  iconUrl:
-    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-gold.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
+const userLocationIcon = L.divIcon({
+  className: "user-location-marker",
+  html: `
+    <div style="position:relative;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">
+      <div style="position:absolute;width:30px;height:30px;border-radius:9999px;background:rgba(0,188,180,0.20);border:1px solid rgba(0,188,180,0.35);"></div>
+      <div style="position:absolute;width:16px;height:16px;border-radius:9999px;background:#00bcb4;border:3px solid #ffffff;box-shadow:0 2px 10px rgba(0,0,0,0.25);"></div>
+    </div>
+  `,
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
 });
 
 // Component to handle map interactions
@@ -90,19 +62,16 @@ function MapInteraction({
     [onMapClick],
   );
 
-  // Auto-zoom to fit all points
+  // Auto-zoom to user's current location only
   useEffect(() => {
-    if (autoZoom && (pickupPoint || dropPoint || driverLocation)) {
-      const bounds = L.latLngBounds([]);
+    if (autoZoom && userLocation) {
+      const maxZoom = map.getMaxZoom();
+      const targetZoom = Number.isFinite(maxZoom) ? Math.min(maxZoom, 19) : 19;
 
-      if (pickupPoint) bounds.extend(pickupPoint);
-      if (dropPoint) bounds.extend(dropPoint);
-      if (driverLocation) bounds.extend(driverLocation);
-      if (userLocation) bounds.extend(userLocation);
-
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [50, 50] });
-      }
+      map.flyTo(userLocation, targetZoom, {
+        animate: true,
+        duration: 0.8,
+      });
     }
   }, [map, pickupPoint, dropPoint, driverLocation, userLocation, autoZoom]);
 
@@ -116,31 +85,22 @@ function MapInteraction({
   return null;
 }
 
-// Smooth animation for moving markers
-function AnimatedMarker({
-  position,
-  icon,
-  label,
-}: {
-  position: [number, number];
-  icon: L.Icon;
-  label?: string;
-}) {
+function MapViewController({ center }: { center: [number, number] | null }) {
   const map = useMap();
-  const markerRef = useCallback(
-    (marker: any) => {
-      if (marker) {
-        marker.setLatLng(position);
-      }
-    },
-    [position],
-  );
 
-  return (
-    <Marker position={position} icon={icon} ref={markerRef}>
-      {label && <Popup>{label}</Popup>}
-    </Marker>
-  );
+  useEffect(() => {
+    if (center) {
+      const maxZoom = map.getMaxZoom();
+      const targetZoom = Number.isFinite(maxZoom) ? Math.min(maxZoom, 19) : 19;
+
+      map.flyTo(center, targetZoom, {
+        animate: true,
+        duration: 0.8,
+      });
+    }
+  }, [map, center]);
+
+  return null;
 }
 
 export const MapCanvas = (props: InteractiveMapCanvasProps) => {
@@ -148,7 +108,6 @@ export const MapCanvas = (props: InteractiveMapCanvasProps) => {
     title = "Map",
     center = [17.385, 78.4856],
     zoom = 5,
-    markers = [],
     userLocation = null,
     onMapClick,
     pickupPoint = null,
@@ -160,15 +119,38 @@ export const MapCanvas = (props: InteractiveMapCanvasProps) => {
     autoZoom = true,
   } = props;
 
+  const [localUserLocation, setLocalUserLocation] = useState<
+    [number, number] | null
+  >(userLocation);
   const [mapCenter, setMapCenter] = useState<[number, number]>(
     userLocation || center,
   );
+  const {
+    location: serviceLocation,
+    loading: locating,
+    error: locationError,
+    requestLocation,
+  } = useGeolocation();
+
+  const effectiveUserLocation = localUserLocation || userLocation;
 
   useEffect(() => {
     if (userLocation) {
       setMapCenter(userLocation);
+      setLocalUserLocation(userLocation);
     }
   }, [userLocation]);
+
+  useEffect(() => {
+    if (serviceLocation) {
+      setLocalUserLocation(serviceLocation);
+      setMapCenter(serviceLocation);
+    }
+  }, [serviceLocation]);
+
+  const handleLocateUser = useCallback(() => {
+    requestLocation();
+  }, [requestLocation]);
 
   return (
     <div className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 rounded-2xl overflow-hidden">
@@ -180,13 +162,15 @@ export const MapCanvas = (props: InteractiveMapCanvasProps) => {
           className="w-full h-full"
           style={{ width: "100%", height: "100%" }}
         >
+          <MapViewController center={mapCenter} />
+
           <MapInteraction
             onMapClick={onMapClick}
             pickupPoint={pickupPoint}
             dropPoint={dropPoint}
             routeCoordinates={routeCoordinates}
             driverLocation={driverLocation}
-            userLocation={userLocation}
+            userLocation={effectiveUserLocation}
             autoZoom={autoZoom}
           />
 
@@ -196,59 +180,38 @@ export const MapCanvas = (props: InteractiveMapCanvasProps) => {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
 
-          {/* Route polyline */}
-          {routeCoordinates && routeCoordinates.length > 0 && (
-            <Polyline
-              positions={routeCoordinates}
-              color="#2563eb"
-              weight={4}
-              opacity={0.7}
-              dashArray="5, 5"
-            />
-          )}
-
           {/* User's current location marker */}
-          {userLocation && (
-            <Marker position={userLocation} icon={blueIcon}>
+          {effectiveUserLocation && (
+            <Marker position={effectiveUserLocation} icon={userLocationIcon}>
               <Popup>Your Location</Popup>
             </Marker>
           )}
-
-          {/* Pickup point marker */}
-          {pickupPoint && showPickupMarker && (
-            <Marker position={pickupPoint} icon={pickupIcon}>
-              <Popup>Pickup Point</Popup>
-            </Marker>
-          )}
-
-          {/* Drop point marker */}
-          {dropPoint && showDropMarker && (
-            <Marker position={dropPoint} icon={dropIcon}>
-              <Popup>Drop Point</Popup>
-            </Marker>
-          )}
-
-          {/* Driver location marker with smooth animation */}
-          {driverLocation && (
-            <AnimatedMarker
-              position={driverLocation}
-              icon={driverIcon}
-              label="Your Driver"
-            />
-          )}
-
-          {/* Additional ride markers */}
-          {markers.map((marker, idx) => (
-            <Marker key={idx} position={[marker.lat, marker.lng]}>
-              {marker.label && <Popup>{marker.label}</Popup>}
-            </Marker>
-          ))}
         </MapContainer>
 
         {/* Click hint overlay */}
         {onMapClick && (
           <div className="absolute top-4 left-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg text-sm font-medium text-slate-700 dark:text-slate-200 z-10">
             Click on map to set location
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={handleLocateUser}
+          disabled={locating}
+          title="Locate me"
+          className="absolute top-3 left-14 z-[1000] h-10 w-10 rounded-full bg-[#00bcb4] text-white shadow-xl border border-[#00bcb4] hover:bg-[#00a9a2] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+        >
+          {locating ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <LocateFixed className="h-5 w-5" />
+          )}
+        </button>
+
+        {locationError && (
+          <div className="absolute top-14 left-14 z-[1000] bg-red-500/90 text-white text-xs px-3 py-2 rounded-md shadow-lg max-w-52">
+            {locationError}
           </div>
         )}
       </div>
