@@ -21,7 +21,6 @@ export const useOAuthSignIn = () => {
         provider: options.provider,
         options: {
           redirectTo: redirectUrl,
-          skipBrowserWarning: false,
         },
       });
 

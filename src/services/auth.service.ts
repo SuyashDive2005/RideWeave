@@ -138,7 +138,6 @@ export const authService = {
         provider: "google",
         options: {
           redirectTo: redirectUrl,
-          skipBrowserWarning: false,
         },
       });
 

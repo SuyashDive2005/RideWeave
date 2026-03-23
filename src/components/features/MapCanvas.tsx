@@ -11,7 +11,6 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useCallback, useState } from "react";
 import L from "leaflet";
 import { blueIcon, type MapCanvasProps } from "@/lib/map-config";
-import { Locate } from "lucide-react";
 
 type ClickHandler = (lat: number, lng: number) => void;
 
@@ -117,17 +116,6 @@ function MapInteraction({
   return null;
 }
 
-// Component to capture map instance
-function MapInstanceCapture({ setMapInstance }: { setMapInstance: (map: L.Map) => void }) {
-  const map = useMap();
-  
-  useEffect(() => {
-    setMapInstance(map);
-  }, [map, setMapInstance]);
-  
-  return null;
-}
-
 // Smooth animation for moving markers
 function AnimatedMarker({
   position,
@@ -175,25 +163,12 @@ export const MapCanvas = (props: InteractiveMapCanvasProps) => {
   const [mapCenter, setMapCenter] = useState<[number, number]>(
     userLocation || center,
   );
-  const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
-  const [isRecentering, setIsRecentering] = useState(false);
 
   useEffect(() => {
     if (userLocation) {
       setMapCenter(userLocation);
     }
   }, [userLocation]);
-
-  const handleRecenter = useCallback(() => {
-    if (mapInstance && userLocation) {
-      setIsRecentering(true);
-      mapInstance.flyTo(userLocation, 15, {
-        duration: 1.5,
-        easeLinearity: 0.5,
-      });
-      setTimeout(() => setIsRecentering(false), 1500);
-    }
-  }, [mapInstance, userLocation]);
 
   return (
     <div className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 rounded-2xl overflow-hidden">
@@ -205,7 +180,6 @@ export const MapCanvas = (props: InteractiveMapCanvasProps) => {
           className="w-full h-full"
           style={{ width: "100%", height: "100%" }}
         >
-          <MapInstanceCapture setMapInstance={setMapInstance} />
           <MapInteraction
             onMapClick={onMapClick}
             pickupPoint={pickupPoint}
@@ -270,22 +244,6 @@ export const MapCanvas = (props: InteractiveMapCanvasProps) => {
             </Marker>
           ))}
         </MapContainer>
-
-        {/* Recenter to user location button */}
-        {userLocation && (
-          <button
-            onClick={handleRecenter}
-            disabled={isRecentering}
-            className="absolute bottom-6 right-4 z-[1000] bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full shadow-lg p-3 transition-all hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border-2 border-slate-200 dark:border-slate-700"
-            title="Go to my location"
-            aria-label="Recenter map to my location"
-          >
-            <Locate 
-              className={`w-6 h-6 ${isRecentering ? 'animate-spin text-blue-500' : ''}`}
-              strokeWidth={2.5}
-            />
-          </button>
-        )}
 
         {/* Click hint overlay */}
         {onMapClick && (

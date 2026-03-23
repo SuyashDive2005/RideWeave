@@ -43,12 +43,15 @@ export class RideRealtimeService {
           filter: `driver_id=eq.${driverId}`,
         },
         (payload) => {
+          const newRecord = (payload.new ?? {}) as any;
+          const oldRecord = (payload.old ?? {}) as any;
+
           const location: DriverLocation = {
             driverId,
-            lat: payload.new?.latitude || payload.old?.latitude,
-            lng: payload.new?.longitude || payload.old?.longitude,
-            heading: payload.new?.heading,
-            speed: payload.new?.speed,
+            lat: newRecord.latitude || oldRecord.latitude,
+            lng: newRecord.longitude || oldRecord.longitude,
+            heading: newRecord.heading,
+            speed: newRecord.speed,
             timestamp: Date.now(),
           };
           callback(location);

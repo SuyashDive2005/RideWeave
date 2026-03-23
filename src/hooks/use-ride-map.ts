@@ -1,14 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
-import { getRoute, RouteInfo } from "@/services/routing.service";
-import {
-  reverseGeocode,
-  forwardGeocode,
-  Address,
-} from "@/services/geocoding.service";
+import { getRoute } from "@/services/routing.service";
+import type { RouteInfo } from "@/services/routing.service";
+import { reverseGeocode, forwardGeocode } from "@/services/geocoding.service";
 import {
   getRealtimeService,
-  DriverLocation,
-  LiveRideUpdate,
+  type DriverLocation,
+  type LiveRideUpdate,
 } from "@/services/websocket.service";
 
 export interface RidePoint {

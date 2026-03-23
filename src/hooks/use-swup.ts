@@ -8,16 +8,15 @@ export const useSwup = () => {
     const swup = new Swup({
       containers: ["#app"],
       cache: true,
-      preload: true,
       plugins: [new SwupHeadPlugin(), new SwupPreloadPlugin()],
     });
 
     // Handle page transitions
-    swup.on("beforeEnter", () => {
+    (swup as any).on("beforeEnter", () => {
       document.documentElement.style.opacity = "0";
     });
 
-    swup.on("enter", () => {
+    (swup as any).on("enter", () => {
       document.documentElement.style.transition = "opacity 0.3s ease-in-out";
       document.documentElement.style.opacity = "1";
     });
